@@ -433,7 +433,7 @@
   <div class="card" id="form-card">
     <div class="fields">
       <div>
-        <label for="niche-input">Ta niche / Passion — 2 mots maximum — Exemple : Running</label>
+        <label for="niche-input">Ta  — 2 mot maximum — Exemple : Running</label>
         <div class="input-row">
           <input
             type="text"
@@ -484,27 +484,34 @@
 
   <script>
     const WEBHOOK_URL = "https://scale.app.n8n.cloud/webhook/generateur-cible-ugc";
-    const HISTORY_URL = "https://scale.app.n8n.cloud/webhook/generateur-cible-ugc-history";
+    const HISTORY_KEY = "ugc_search_history";
+    const MAX_HISTORY = 10;
 
-    let historyCache = [];
-
-    async function loadHistory() {
+    function getHistory() {
       try {
-        const res = await fetch(HISTORY_URL);
-        if (!res.ok) return;
-        const data = await res.json();
-        historyCache = data.history || [];
-        renderHistory(historyCache);
-      } catch {
-        renderHistory([]);
-      }
+        return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+      } catch { return []; }
     }
 
-    function renderHistory(history) {
+    function saveToHistory(niche, age, text) {
+      const history = getHistory();
+      history.unshift({
+        niche,
+        age,
+        text,
+        date: new Date().toISOString(),
+      });
+      if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      renderHistory();
+    }
+
+    function renderHistory() {
       const list = document.getElementById("history-list");
+      const history = getHistory();
       const section = document.getElementById("history-section");
 
-      if (!history || history.length === 0) {
+      if (history.length === 0) {
         section.style.display = "none";
         return;
       }
@@ -535,9 +542,10 @@
     }
 
     function showHistoryItem(idx) {
-      const item = historyCache[idx];
+      const history = getHistory();
+      const item = history[idx];
       if (!item) return;
-      displayResult(item.niche, item.age, item.text);
+      displayResult(item.niche, item.age, item.text, false);
     }
 
     async function generate() {
@@ -574,8 +582,7 @@
             ? data
             : data.result || data.output || data.text || data.content || JSON.stringify(data);
 
-        displayResult(niche, age, text);
-        loadHistory();
+        displayResult(niche, age, text, true);
       } catch (err) {
         showError("Une erreur est survenue : " + err.message);
       } finally {
@@ -583,7 +590,7 @@
       }
     }
 
-    function displayResult(niche, age, text) {
+    function displayResult(niche, age, text, saveSearch) {
       document.getElementById("form-card").style.display = "none";
       document.getElementById("history-section").style.display = "none";
       document.getElementById("niche-tag").textContent = `${niche} · ${age} ans`;
@@ -595,6 +602,10 @@
       h2s.forEach((el, i) => {
         el.style.color = colors[i] || "inherit";
       });
+
+      if (saveSearch) {
+        saveToHistory(niche, age, text);
+      }
     }
 
     function reset() {
@@ -603,7 +614,7 @@
       document.getElementById("niche-input").value = "";
       document.getElementById("age-input").value = "";
       document.getElementById("niche-input").focus();
-      renderHistory(historyCache);
+      renderHistory();
     }
 
     function setLoading(active) {
@@ -632,7 +643,7 @@
       if (e.key === "Enter") generate();
     });
 
-    loadHistory();
+    renderHistory();
   </script>
 
 </body>

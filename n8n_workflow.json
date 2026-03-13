@@ -8,12 +8,22 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "webhook-node",
+      "id": "1",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [240, 300],
       "webhookId": "generateur-cible-ugc"
+    },
+    {
+      "parameters": {
+        "jsCode": "const niche = $input.first().json.body.niche;\nconst age = $input.first().json.body.age;\n\nconst prompt = `Tu es un expert en stratégie UGC (User Generated Content) et en prospection commerciale pour créateurs de contenu. Ton rôle est d'aider un créateur UGC à identifier des sous-niches rentables et peu exploitées auxquelles la majorité des créateurs n'auraient pas pensé.\n\n---\n\nCONTEXTE :\nLe créateur UGC a ${age} ans et travaille dans la niche suivante : ${niche}\n\nPROFIL DÉMOGRAPHIQUE À INTÉGRER :\nAdapte TOUTES tes suggestions en tenant compte de cet âge. Cela signifie :\n- Les entreprises proposées doivent cibler une clientèle similaire à cet âge OU bénéficier d'un créateur de cet âge (authenticité, crédibilité, expérience de vie)\n- Les mots-clés Instagram et les exemples de marques doivent être cohérents avec les habitudes de consommation de cette tranche d'âge\n- Un créateur de 50 ans apportera une valeur différente d'un créateur de 22 ans : mise en avant de l'expérience, de la confiance, de la transformation réelle\n\n---\n\nOBJECTIF :\nÀ partir de cette niche et de ce profil d'âge, génère une liste de 15 types d'entreprises qui pourraient avoir besoin de contenu UGC créé par quelqu'un de ${age} ans dans la niche ${niche}. L'objectif est d'aller au-delà des choix évidents et de proposer des sous-niches originales, peu saturées, où la concurrence entre créateurs UGC est faible mais où la demande en contenu existe.\n\n---\n\nCONSIGNES PRÉCISES :\n\n1. Pour chaque type d'entreprise, fournis :\n   - Le nom du type d'entreprise\n   - 3 mots-clés Instagram pour trouver facilement des comptes de ce type d'entreprise\n   - 2 exemples concrets de marques/entreprises réelles qui existent dans cette sous-niche (avec leur nom exact)\n\n2. Répartis les 15 résultats en 3 catégories :\n   - 🟢 Évidentes mais sous-exploitées (5)\n   - 🟡 Connexions intelligentes (5)\n   - 🔴 Hors radar (5)\n\n3. Règles à respecter :\n   - Les marques citées doivent être réelles et actives\n   - Privilégie les marques qui s'adressent à une clientèle de ${age} ans ou qui recherchent des créateurs avec ce profil d'âge pour gagner en authenticité\n   - Les mots-clés Instagram doivent être en français ET/OU en anglais selon ce qui fonctionne le mieux\n   - Pense aux entreprises locales, SaaS, apps, événements, services B2B qui s'adressent au consommateur final\n\n---\n\nFORMAT DE RÉPONSE ATTENDU :\n\n## 🟢 ÉVIDENTES MAIS SOUS-EXPLOITÉES\n\n**1. [Type d'entreprise]**\nMots-clés Instagram : [mot-clé 1] · [mot-clé 2] · [mot-clé 3]\n🏷️ Exemples : [Marque 1] · [Marque 2]\n\n## 🟡 CONNEXIONS INTELLIGENTES\n\n(même format)\n\n## 🔴 HORS RADAR\n\n(même format)\n\n---\n\nMaintenant, génère la liste complète pour : niche ${niche}, créateur de ${age} ans.`;\n\nreturn [{\n  json: {\n    model: \"claude-opus-4-5\",\n    max_tokens: 4096,\n    messages: [\n      {\n        role: \"user\",\n        content: prompt\n      }\n    ]\n  }\n}];"
+      },
+      "id": "2",
+      "name": "Build Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
     },
     {
       "parameters": {
@@ -31,24 +41,37 @@
           ]
         },
         "sendBody": true,
-        "bodyParameters": {
-          "parameters": []
-        },
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"claude-opus-4-5\",\n  \"max_tokens\": 4096,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Tu es un expert en stratégie UGC (User Generated Content) et en prospection commerciale pour créateurs de contenu. Ton rôle est d'aider un créateur UGC à identifier des sous-niches rentables et peu exploitées auxquelles la majorité des créateurs n'auraient pas pensé.\\n\\n---\\n\\nCONTEXTE :\\nLe créateur UGC travaille dans la niche suivante : {{ $json.body.niche }}\\n\\n---\\n\\nOBJECTIF :\\nÀ partir de cette niche, génère une liste de 15 types d'entreprises qui pourraient avoir besoin de contenu UGC. L'objectif est d'aller au-delà des choix évidents et de proposer des sous-niches originales, peu saturées, où la concurrence entre créateurs UGC est faible mais où la demande en contenu existe.\\n\\n---\\n\\nCONSIGNES PRÉCISES :\\n\\n1. Pour chaque type d'entreprise, fournis :\\n   - Le nom du type d'entreprise (ex : \\\"Marques de semelles orthopédiques sport\\\")\\n   - Une courte explication (1 phrase) de pourquoi cette entreprise a besoin de contenu UGC\\n   - 3 mots-clés Instagram pour trouver facilement des comptes de ce type d'entreprise (des mots-clés qu'on taperait dans la barre de recherche Instagram)\\n   - 2 exemples concrets de marques/entreprises réelles qui existent dans cette sous-niche (avec leur nom exact)\\n\\n2. Répartis les 15 résultats en 3 catégories :\\n   - 🟢 Évidentes mais sous-exploitées (5) : Des entreprises liées à la niche auxquelles on pense vite, mais que peu de créateurs UGC prospectent réellement.\\n   - 🟡 Connexions intelligentes (5) : Des entreprises dans des secteurs adjacents à la niche, qui ont un lien logique mais moins direct.\\n   - 🔴 Hors radar (5) : Des entreprises auxquelles quasiment personne ne penserait, mais qui ont un vrai besoin de contenu UGC lié à cette niche.\\n\\n3. Règles à respecter :\\n   - Les marques citées doivent être réelles et actives.\\n   - Privilégie les marques qui ont déjà une présence Instagram (même petite).\\n   - Les mots-clés Instagram doivent être en français ET/OU en anglais selon ce qui fonctionne le mieux pour la recherche.\\n   - Pense aussi aux entreprises locales, aux SaaS, aux apps, aux événements, aux services B2B qui s'adressent au consommateur final.\\n\\n---\\n\\nFORMAT DE RÉPONSE ATTENDU :\\n\\n## 🟢 ÉVIDENTES MAIS SOUS-EXPLOITÉES\\n\\n**1. [Type d'entreprise]**\\n💡 Pourquoi : [explication courte]\\n🔎 Mots-clés Instagram : [mot-clé 1] · [mot-clé 2] · [mot-clé 3]\\n🏷️ Exemples : [Marque 1] · [Marque 2]\\n\\n(répéter pour chaque entrée)\\n\\n## 🟡 CONNEXIONS INTELLIGENTES\\n\\n(même format)\\n\\n## 🔴 HORS RADAR\\n\\n(même format)\\n\\n---\\n\\nEXEMPLE pour bien comprendre le niveau de créativité attendu :\\n\\nNiche : Running\\n→ Type d'entreprise inattendu : \\\"Podologues du sport qui vendent des semelles sur-mesure en ligne\\\"\\n💡 Pourquoi : Ils ciblent exactement les runners mais n'ont souvent aucun contenu lifestyle/UGC.\\n🔎 Mots-clés Instagram : podologue sport · semelles running · podologie sportive\\n🏷️ Exemples : Podoactiva · SIDAS\\n\\n---\\n\\nMaintenant, génère la liste complète pour la niche : {{ $json.body.niche }}\"\n    }\n  ]\n}",
-        "options": {}
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
       },
-      "id": "claude-api-node",
+      "id": "3",
       "name": "Claude API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [480, 300],
+      "position": [720, 300],
       "credentials": {
         "httpHeaderAuth": {
           "id": "anthropic-credentials",
           "name": "Anthropic API Key"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nif (!staticData.history) staticData.history = [];\n\nconst body = $('Webhook').first().json.body;\nconst niche = body.niche;\nconst age = body.age;\nconst text = $json.content[0].text;\n\nstaticData.history.unshift({\n  niche,\n  age,\n  text,\n  date: new Date().toISOString()\n});\n\nif (staticData.history.length > 20) staticData.history.length = 20;\n\nreturn $input.all();"
+      },
+      "id": "5",
+      "name": "Save History",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 300]
     },
     {
       "parameters": {
@@ -65,15 +88,71 @@
           }
         }
       },
-      "id": "respond-node",
+      "id": "4",
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [720, 300]
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "generateur-cible-ugc-history",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "6",
+      "name": "History Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 520],
+      "webhookId": "generateur-cible-ugc-history"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nreturn [{ json: { history: staticData.history || [] } }];"
+      },
+      "id": "7",
+      "name": "Get History",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 520]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ history: $json.history }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "8",
+      "name": "Respond History",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [720, 520]
     }
   ],
   "connections": {
     "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
       "main": [
         [
           {
@@ -88,7 +167,40 @@
       "main": [
         [
           {
+            "node": "Save History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save History": {
+      "main": [
+        [
+          {
             "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "History Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get History": {
+      "main": [
+        [
+          {
+            "node": "Respond History",
             "type": "main",
             "index": 0
           }
@@ -103,6 +215,5 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 0,
-  "updatedAt": "2026-01-01T00:00:00.000Z",
-  "versionId": "1"
+  "versionId": "3"
 }

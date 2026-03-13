@@ -328,92 +328,6 @@
       background: transparent;
     }
 
-    /* History */
-    #history-section {
-      width: 100%;
-      max-width: 680px;
-      margin-top: 12px;
-    }
-
-    .history-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 12px;
-    }
-
-    .history-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .history-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 18px;
-      cursor: pointer;
-      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-    }
-
-    .history-item:hover {
-      border-color: var(--accent);
-      box-shadow: 0 0 12px var(--accent-glow);
-      background: var(--surface2);
-    }
-
-    .history-item-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 0;
-    }
-
-    .history-item-niche {
-      font-weight: 700;
-      font-size: 15px;
-      color: var(--text);
-      white-space: nowrap;
-    }
-
-    .history-item-age {
-      font-size: 13px;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-
-    .history-item-date {
-      font-size: 12px;
-      color: #555;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .history-item-arrow {
-      color: var(--muted);
-      font-size: 16px;
-      margin-left: 12px;
-      flex-shrink: 0;
-      transition: color 0.2s;
-    }
-
-    .history-item:hover .history-item-arrow {
-      color: var(--accent);
-    }
-
-    .history-empty {
-      color: #444;
-      font-size: 14px;
-      text-align: center;
-      padding: 20px;
-    }
-
     footer {
       margin-top: 48px;
       color: #333;
@@ -433,7 +347,7 @@
   <div class="card" id="form-card">
     <div class="fields">
       <div>
-        <label for="niche-input">Ta niche / Passion — 2 mots maximum — Exemple : Running</label>
+        <label for="niche-input">Ta niche — 1 mot maximum — Exemple : Running</label>
         <div class="input-row">
           <input
             type="text"
@@ -475,70 +389,11 @@
     <button id="reset-btn" onclick="reset()">← Nouvelle recherche</button>
   </div>
 
-  <div id="history-section">
-    <div class="history-title">Recherches récentes</div>
-    <div class="history-list" id="history-list"></div>
-  </div>
-
   <footer>Propulsé par Claude AI · via n8n</footer>
 
   <script>
+    // ⬇️ REMPLACE cette URL par ton webhook n8n
     const WEBHOOK_URL = "https://scale.app.n8n.cloud/webhook/generateur-cible-ugc";
-    const HISTORY_URL = "https://scale.app.n8n.cloud/webhook/generateur-cible-ugc-history";
-
-    let historyCache = [];
-
-    async function loadHistory() {
-      try {
-        const res = await fetch(HISTORY_URL);
-        if (!res.ok) return;
-        const data = await res.json();
-        historyCache = data.history || [];
-        renderHistory(historyCache);
-      } catch {
-        renderHistory([]);
-      }
-    }
-
-    function renderHistory(history) {
-      const list = document.getElementById("history-list");
-      const section = document.getElementById("history-section");
-
-      if (!history || history.length === 0) {
-        section.style.display = "none";
-        return;
-      }
-
-      section.style.display = "block";
-      list.innerHTML = history.map((item, idx) => {
-        const d = new Date(item.date);
-        const dateStr = d.toLocaleDateString("fr-FR", {
-          day: "numeric", month: "short", year: "numeric",
-          hour: "2-digit", minute: "2-digit",
-        });
-        return `
-          <div class="history-item" onclick="showHistoryItem(${idx})">
-            <div class="history-item-left">
-              <span class="history-item-niche">${escapeHtml(item.niche)}</span>
-              <span class="history-item-age">${item.age} ans</span>
-            </div>
-            <span class="history-item-date">${dateStr}</span>
-            <span class="history-item-arrow">→</span>
-          </div>`;
-      }).join("");
-    }
-
-    function escapeHtml(str) {
-      const div = document.createElement("div");
-      div.textContent = str;
-      return div.innerHTML;
-    }
-
-    function showHistoryItem(idx) {
-      const item = historyCache[idx];
-      if (!item) return;
-      displayResult(item.niche, item.age, item.text);
-    }
 
     async function generate() {
       const niche = document.getElementById("niche-input").value.trim();
@@ -569,13 +424,13 @@
 
         const data = await response.json();
 
+        // Accepte { result: "..." } ou { output: "..." } ou directement une string
         const text =
           typeof data === "string"
             ? data
             : data.result || data.output || data.text || data.content || JSON.stringify(data);
 
         displayResult(niche, age, text);
-        loadHistory();
       } catch (err) {
         showError("Une erreur est survenue : " + err.message);
       } finally {
@@ -585,11 +440,11 @@
 
     function displayResult(niche, age, text) {
       document.getElementById("form-card").style.display = "none";
-      document.getElementById("history-section").style.display = "none";
       document.getElementById("niche-tag").textContent = `${niche} · ${age} ans`;
       document.getElementById("result-content").innerHTML = marked.parse(text);
       document.getElementById("result-container").style.display = "block";
 
+      // Colorier les titres h2 selon leur position
       const h2s = document.querySelectorAll("#result-content h2");
       const colors = ["#22c55e", "#eab308", "#ef4444"];
       h2s.forEach((el, i) => {
@@ -603,7 +458,6 @@
       document.getElementById("niche-input").value = "";
       document.getElementById("age-input").value = "";
       document.getElementById("niche-input").focus();
-      renderHistory(historyCache);
     }
 
     function setLoading(active) {
@@ -628,11 +482,10 @@
       document.getElementById("error").style.display = "none";
     }
 
+    // Soumettre avec Entrée
     document.getElementById("niche-input").addEventListener("keydown", (e) => {
       if (e.key === "Enter") generate();
     });
-
-    loadHistory();
   </script>
 
 </body>
