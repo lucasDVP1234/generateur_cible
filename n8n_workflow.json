@@ -1,0 +1,108 @@
+{
+  "name": "Générateur de Cibles UGC",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generateur-cible-ugc",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-node",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "generateur-cible-ugc"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-opus-4-5\",\n  \"max_tokens\": 4096,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Tu es un expert en stratégie UGC (User Generated Content) et en prospection commerciale pour créateurs de contenu. Ton rôle est d'aider un créateur UGC à identifier des sous-niches rentables et peu exploitées auxquelles la majorité des créateurs n'auraient pas pensé.\\n\\n---\\n\\nCONTEXTE :\\nLe créateur UGC travaille dans la niche suivante : {{ $json.body.niche }}\\n\\n---\\n\\nOBJECTIF :\\nÀ partir de cette niche, génère une liste de 15 types d'entreprises qui pourraient avoir besoin de contenu UGC. L'objectif est d'aller au-delà des choix évidents et de proposer des sous-niches originales, peu saturées, où la concurrence entre créateurs UGC est faible mais où la demande en contenu existe.\\n\\n---\\n\\nCONSIGNES PRÉCISES :\\n\\n1. Pour chaque type d'entreprise, fournis :\\n   - Le nom du type d'entreprise (ex : \\\"Marques de semelles orthopédiques sport\\\")\\n   - Une courte explication (1 phrase) de pourquoi cette entreprise a besoin de contenu UGC\\n   - 3 mots-clés Instagram pour trouver facilement des comptes de ce type d'entreprise (des mots-clés qu'on taperait dans la barre de recherche Instagram)\\n   - 2 exemples concrets de marques/entreprises réelles qui existent dans cette sous-niche (avec leur nom exact)\\n\\n2. Répartis les 15 résultats en 3 catégories :\\n   - 🟢 Évidentes mais sous-exploitées (5) : Des entreprises liées à la niche auxquelles on pense vite, mais que peu de créateurs UGC prospectent réellement.\\n   - 🟡 Connexions intelligentes (5) : Des entreprises dans des secteurs adjacents à la niche, qui ont un lien logique mais moins direct.\\n   - 🔴 Hors radar (5) : Des entreprises auxquelles quasiment personne ne penserait, mais qui ont un vrai besoin de contenu UGC lié à cette niche.\\n\\n3. Règles à respecter :\\n   - Les marques citées doivent être réelles et actives.\\n   - Privilégie les marques qui ont déjà une présence Instagram (même petite).\\n   - Les mots-clés Instagram doivent être en français ET/OU en anglais selon ce qui fonctionne le mieux pour la recherche.\\n   - Pense aussi aux entreprises locales, aux SaaS, aux apps, aux événements, aux services B2B qui s'adressent au consommateur final.\\n\\n---\\n\\nFORMAT DE RÉPONSE ATTENDU :\\n\\n## 🟢 ÉVIDENTES MAIS SOUS-EXPLOITÉES\\n\\n**1. [Type d'entreprise]**\\n💡 Pourquoi : [explication courte]\\n🔎 Mots-clés Instagram : [mot-clé 1] · [mot-clé 2] · [mot-clé 3]\\n🏷️ Exemples : [Marque 1] · [Marque 2]\\n\\n(répéter pour chaque entrée)\\n\\n## 🟡 CONNEXIONS INTELLIGENTES\\n\\n(même format)\\n\\n## 🔴 HORS RADAR\\n\\n(même format)\\n\\n---\\n\\nEXEMPLE pour bien comprendre le niveau de créativité attendu :\\n\\nNiche : Running\\n→ Type d'entreprise inattendu : \\\"Podologues du sport qui vendent des semelles sur-mesure en ligne\\\"\\n💡 Pourquoi : Ils ciblent exactement les runners mais n'ont souvent aucun contenu lifestyle/UGC.\\n🔎 Mots-clés Instagram : podologue sport · semelles running · podologie sportive\\n🏷️ Exemples : Podoactiva · SIDAS\\n\\n---\\n\\nMaintenant, génère la liste complète pour la niche : {{ $json.body.niche }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "claude-api-node",
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "anthropic-credentials",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ result: $json.content[0].text }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-node",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [720, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude API": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Générateur de Cibles UGC</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #0d0d0d;
+      --surface: #161616;
+      --surface2: #1f1f1f;
+      --border: #2a2a2a;
+      --accent: #7c3aed;
+      --accent-hover: #6d28d9;
+      --accent-glow: rgba(124, 58, 237, 0.25);
+      --text: #f0f0f0;
+      --muted: #888;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: var(--accent-glow);
+      border: 1px solid var(--accent);
+      color: #a78bfa;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 999px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 14px;
+      background: linear-gradient(135deg, #fff 30%, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 500px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 680px;
+      margin-bottom: 32px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 16px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="text"]::placeholder {
+      color: #444;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 24px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--accent-hover);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    button:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Loading */
+    #loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    #loading p {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    /* Error */
+    #error {
+      display: none;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 10px;
+      padding: 16px 20px;
+      color: #fca5a5;
+      font-size: 14px;
+      margin-top: 16px;
+    }
+
+    /* Result */
+    #result-container {
+      display: none;
+      width: 100%;
+      max-width: 680px;
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .result-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .niche-tag {
+      background: var(--accent-glow);
+      border: 1px solid var(--accent);
+      color: #c4b5fd;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 999px;
+    }
+
+    #result-content {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      line-height: 1.75;
+    }
+
+    /* Markdown rendered styles */
+    #result-content h2 {
+      font-size: 18px;
+      font-weight: 800;
+      margin: 28px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    #result-content h2:first-child {
+      margin-top: 0;
+    }
+
+    #result-content h2:has(+ *:not(h2)) {
+      color: var(--text);
+    }
+
+    #result-content strong {
+      color: #e2d9ff;
+      font-weight: 700;
+    }
+
+    #result-content p {
+      margin-bottom: 8px;
+      color: #ccc;
+      font-size: 15px;
+    }
+
+    #result-content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 24px 0;
+    }
+
+    #result-content ul, #result-content ol {
+      padding-left: 20px;
+      margin-bottom: 12px;
+    }
+
+    #result-content li {
+      color: #ccc;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    /* Section color indicators */
+    #result-content h2:first-of-type {
+      color: var(--green);
+    }
+
+    /* Reset button */
+    #reset-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 8px;
+      margin-top: 20px;
+      width: 100%;
+    }
+
+    #reset-btn:hover {
+      border-color: var(--accent);
+      color: #a78bfa;
+      box-shadow: none;
+      background: transparent;
+    }
+
+    footer {
+      margin-top: 48px;
+      color: #333;
+      font-size: 13px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="badge">Outil UGC Pro</div>
+    <h1>Générateur de Cibles</h1>
+    <p>Entre ta niche et découvre 15 types d'entreprises à prospecter — des évidentes aux hors-radar.</p>
+  </header>
+
+  <div class="card" id="form-card">
+    <label for="niche-input">Ta niche</label>
+    <div class="input-row">
+      <input
+        type="text"
+        id="niche-input"
+        placeholder="Ex : Running, Cuisine végane, Fitness féminin…"
+        autocomplete="off"
+      />
+      <button id="submit-btn" onclick="generate()">Générer →</button>
+    </div>
+    <div id="error"></div>
+
+    <div id="loading">
+      <div class="spinner"></div>
+      <p>Claude analyse ta niche…<br/>Ça peut prendre 20 à 40 secondes.</p>
+    </div>
+  </div>
+
+  <div id="result-container">
+    <div class="result-header">
+      <span class="result-title">15 cibles pour ta niche</span>
+      <span class="niche-tag" id="niche-tag"></span>
+    </div>
+    <div id="result-content"></div>
+    <button id="reset-btn" onclick="reset()">← Nouvelle recherche</button>
+  </div>
+
+  <footer>Propulsé par Claude AI · via n8n</footer>
+
+  <script>
+    // ⬇️ REMPLACE cette URL par ton webhook n8n
+    const WEBHOOK_URL = "https://scale.app.n8n.cloud/webhook/generateur-cible-ugc";
+
+    async function generate() {
+      const input = document.getElementById("niche-input");
+      const niche = input.value.trim();
+
+      if (!niche) {
+        showError("Merci d'entrer une niche avant de générer.");
+        return;
+      }
+
+      if (WEBHOOK_URL === "VOTRE_URL_WEBHOOK_N8N_ICI") {
+        showError("⚠️ Configure d'abord ton URL webhook n8n dans le fichier HTML (variable WEBHOOK_URL).");
+        return;
+      }
+
+      setLoading(true);
+      hideError();
+
+      try {
+        const response = await fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ niche }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Erreur serveur : ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Accepte { result: "..." } ou { output: "..." } ou directement une string
+        const text =
+          typeof data === "string"
+            ? data
+            : data.result || data.output || data.text || data.content || JSON.stringify(data);
+
+        displayResult(niche, text);
+      } catch (err) {
+        showError("Une erreur est survenue : " + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function displayResult(niche, text) {
+      document.getElementById("form-card").style.display = "none";
+      document.getElementById("niche-tag").textContent = niche;
+      document.getElementById("result-content").innerHTML = marked.parse(text);
+      document.getElementById("result-container").style.display = "block";
+
+      // Colorier les titres h2 selon leur position
+      const h2s = document.querySelectorAll("#result-content h2");
+      const colors = ["#22c55e", "#eab308", "#ef4444"];
+      h2s.forEach((el, i) => {
+        el.style.color = colors[i] || "inherit";
+      });
+    }
+
+    function reset() {
+      document.getElementById("form-card").style.display = "block";
+      document.getElementById("result-container").style.display = "none";
+      document.getElementById("niche-input").value = "";
+      document.getElementById("niche-input").focus();
+    }
+
+    function setLoading(active) {
+      const loading = document.getElementById("loading");
+      const btn = document.getElementById("submit-btn");
+      const input = document.getElementById("niche-input");
+      loading.style.display = active ? "flex" : "none";
+      btn.disabled = active;
+      input.disabled = active;
+      btn.textContent = active ? "En cours…" : "Générer →";
+    }
+
+    function showError(msg) {
+      const el = document.getElementById("error");
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+
+    function hideError() {
+      document.getElementById("error").style.display = "none";
+    }
+
+    // Soumettre avec Entrée
+    document.getElementById("niche-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") generate();
+    });
+  </script>
+
+</body>
+</html>
